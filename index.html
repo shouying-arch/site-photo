@@ -1,0 +1,1347 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f3d2e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="工地拍照">
+<meta name="mobile-web-app-capable" content="yes">
+<title>工地拍照送審</title>
+<style>
+  :root{
+    --bg:#f3f5f4; --card:#fff; --ink:#16241e; --muted:#6c7a73; --line:#e2e8e5;
+    --green:#0f3d2e; --green-l:#1a6b4f; --amber:#f5a524; --amber-d:#c9821a;
+    --red:#d64545; --ok:#1a9d55;
+    --shadow:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,"Segoe UI",Roboto,"Noto Sans TC","Microsoft JhengHei",sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5; padding-bottom:76px;
+    -webkit-text-size-adjust:100%;
+  }
+  header{
+    position:sticky; top:0; z-index:20; background:linear-gradient(120deg,var(--green),#18543f);
+    color:#fff; padding:12px 16px; display:flex; align-items:center; gap:10px;
+    box-shadow:0 2px 10px rgba(15,61,46,.3); border-bottom:3px solid var(--amber);
+  }
+  header h1{font-size:17px; margin:0; font-weight:700; flex:1}
+  header .sub{font-size:12px; opacity:.85; font-weight:400; display:block}
+  .wrap{padding:14px; max-width:680px; margin:0 auto}
+  .view{display:none} .view.active{display:block}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+        padding:14px; margin-bottom:12px; box-shadow:var(--shadow)}
+  .card h2{margin:0 0 10px; font-size:16px}
+  label{display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; font-weight:600}
+  input,select,textarea{
+    width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:10px;
+    font-size:16px; font-family:inherit; background:#fff; color:var(--ink);
+  }
+  input:focus,select:focus{outline:2px solid var(--green-l); outline-offset:-1px}
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:6px;
+       padding:12px 16px; border:0; border-radius:11px; font-size:15px; font-weight:700;
+       font-family:inherit; cursor:pointer; background:var(--green); color:#fff}
+  .btn.amber{background:var(--amber); color:#3a2a06}
+  .btn.ghost{background:#fff; color:var(--green); border:1.5px solid var(--green)}
+  .btn.danger{background:#fff; color:var(--red); border:1.5px solid var(--red)}
+  .btn.sm{padding:7px 11px; font-size:13px; border-radius:9px}
+  .btn.block{width:100%}
+  .btn:disabled{opacity:.45}
+  .row{display:flex; gap:8px; align-items:center}
+  .grow{flex:1; min-width:0}
+  .muted{color:var(--muted); font-size:13px}
+  .pill{display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:700}
+  .pill.ok{background:#e4f6ec; color:var(--ok)}
+  .pill.wait{background:#fdf0d9; color:var(--amber-d)}
+  .pill.grey{background:#eef1f0; color:var(--muted)}
+  .case{display:flex; gap:10px; align-items:center; padding:12px 0; border-top:1px solid var(--line); cursor:pointer}
+  .case:first-of-type{border-top:0}
+  .case .t{font-weight:700}
+  .bar{height:7px; background:#e9edeb; border-radius:99px; overflow:hidden; margin-top:6px}
+  .bar>i{display:block; height:100%; background:var(--ok); transition:width .25s}
+  /* 拍照格 */
+  .slot{padding:12px 0; border-top:1px solid var(--line)}
+  .slot:first-child{border-top:0}
+  .slot .head{display:flex; align-items:baseline; gap:8px}
+  .slot .no{font-weight:800; color:var(--green-l); font-size:13px; flex:none}
+  .slot .nm{font-weight:700; font-size:15px; line-height:1.3; flex:1}
+  .cnt{font-size:12px; font-weight:700; padding:1px 8px; border-radius:99px; flex:none}
+  .cnt.ok{background:#e4f6ec; color:var(--ok)} .cnt.no{background:#eef1f0; color:var(--muted)}
+  .strip{display:flex; gap:8px; overflow-x:auto; padding:9px 0 3px; -webkit-overflow-scrolling:touch}
+  .shot{width:92px; flex:none}
+  .shot .im{width:92px; height:92px; border-radius:11px; overflow:hidden; border:1.5px solid var(--ok);
+            background:#f7f9f8; position:relative}
+  .shot .im img{width:100%; height:100%; object-fit:cover; display:block}
+  .shot .im .tag{position:absolute; left:0; top:0; background:rgba(15,61,46,.82); color:#fff;
+                 font-size:11px; font-weight:800; padding:1px 6px; border-bottom-right-radius:8px}
+  .shot .im .tag.star{background:var(--amber); color:#3a2a06}
+  .shot .ops{display:flex; gap:4px; margin-top:4px}
+  .shot .ops button{flex:1; border:1px solid var(--line); background:#fff; border-radius:7px;
+                    font-size:12px; padding:3px 0; font-family:inherit; cursor:pointer; color:var(--muted)}
+  .shot .ops button.st{color:var(--amber-d); font-weight:800}
+  .shot .ops button.rm{color:var(--red)}
+  .addshot{width:92px; height:92px; flex:none; border-radius:11px; border:1.5px dashed var(--line);
+           background:#f7f9f8; display:flex; flex-direction:column; align-items:center; justify-content:center;
+           color:var(--muted); font-size:12px; cursor:pointer; line-height:1.35}
+  .addshot b{font-size:20px; font-weight:400}
+  .valrow{display:flex; gap:6px; align-items:center; margin-top:8px}
+  .valrow span{font-size:13px; color:var(--muted); font-weight:600; white-space:nowrap}
+  .valrow input{padding:7px 9px; font-size:15px}
+  .tabbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:30; display:flex;
+    background:#fff; border-top:1px solid var(--line); box-shadow:0 -2px 10px rgba(0,0,0,.05);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .tabbar button{flex:1; border:0; background:none; padding:10px 4px 12px; font-family:inherit;
+                 font-size:12px; color:var(--muted); font-weight:700; cursor:pointer}
+  .tabbar button.on{color:var(--green)}
+  .tabbar .ic{display:block; font-size:19px; line-height:1.25}
+  .tplitem{display:flex; gap:8px; align-items:center; padding:8px 0; border-top:1px solid var(--line)}
+  .toast{position:fixed; left:50%; bottom:88px; transform:translateX(-50%); z-index:99;
+         background:#16241e; color:#fff; padding:11px 18px; border-radius:11px; font-size:14px;
+         box-shadow:0 6px 20px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:opacity .2s; max-width:88vw}
+  .toast.show{opacity:.96}
+  .warn{background:#fff8e6; border:1px solid #f3dfae; color:#7a5a12; border-radius:11px;
+        padding:10px 12px; font-size:13px; margin-bottom:12px}
+  .hide{display:none !important}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grow">
+    <h1 id="hTitle">工地拍照送審</h1>
+    <span class="sub" id="hSub">依工項範本逐格拍照　<span id="ver"></span></span>
+  </div>
+  <button class="btn ghost sm hide" id="btnBack" onclick="go('cases')">← 返回</button>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ 案件列表 ============ -->
+  <section id="v-cases" class="view active">
+    <button class="btn block amber" id="btnNew" onclick="newCase()">＋ 新增拍照案件</button>
+    <div class="card" style="margin-top:12px">
+      <h2>進行中</h2>
+      <div id="listDoing"><p class="muted">還沒有案件，按上面新增。</p></div>
+    </div>
+    <div class="card">
+      <h2>已匯出</h2>
+      <div id="listDone"><p class="muted">（尚無）</p></div>
+    </div>
+  </section>
+
+  <!-- ============ 新案件 ============ -->
+  <section id="v-new" class="view">
+    <div class="card">
+      <h2 id="nTitle">新增拍照案件</h2>
+      <div id="nJobRow">
+        <label>工項（範本）</label>
+        <select id="nJob"></select>
+      </div>
+      <label id="nLocLabel">檢查位置（路名門牌＋編號）</label>
+      <input id="nLoc" list="locList" placeholder="例：福德街(A3-2)" autocomplete="off">
+      <datalist id="locList"></datalist>
+      <label>施工日期</label>
+      <input id="nDate" type="date">
+      <p class="muted" id="nDatePreview"></p>
+      <button class="btn block" style="margin-top:14px" onclick="createCase()">建立並開始拍照</button>
+    </div>
+  </section>
+
+  <!-- ============ 拍照 ============ -->
+  <section id="v-shoot" class="view">
+    <div class="card">
+      <div class="row">
+        <div class="grow">
+          <div style="font-weight:800; font-size:16px" id="sTitle"></div>
+          <div class="muted" id="sSub"></div>
+        </div>
+        <span class="pill wait" id="sProg">0/0</span>
+      </div>
+      <div class="bar"><i id="sBar" style="width:0%"></i></div>
+      <div class="muted" id="sCount" style="margin-top:6px"></div>
+      <div class="valrow" style="margin-top:10px">
+        <span>本次拍攝日期</span>
+        <input type="date" id="sDate" class="grow" onchange="setShootDate(this.value)">
+      </div>
+      <p class="muted" id="sDateHint" style="margin:6px 0 0"></p>
+    </div>
+    <div class="card">
+      <div id="slots"></div>
+      <button class="btn ghost sm block" style="margin-top:12px" id="btnAddItem" onclick="addExtra()">＋ 加一個項目（範本沒有的補充照片）</button>
+    </div>
+    <div class="card">
+      <h2>匯出</h2>
+      <p class="muted" style="margin-top:0">產生 ZIP，檔名與資料夾都已分好。Android 會存到手機的「下載」資料夾，USB 接電腦就能拖走。</p>
+      <button class="btn block amber" onclick="exportZip()">匯出這個案件（ZIP）</button>
+      <button class="btn ghost block hide" id="btnShare" style="margin-top:8px" onclick="shareZip()">
+        匯出並分享（LINE／儲存到檔案／AirDrop）</button>
+      <p class="muted" style="margin:8px 0 0">用 LINE 傳這個 ZIP <b>不會被壓縮</b>（跟直接傳照片不一樣），
+        電腦版 LINE 收到解壓就好。iPhone 建議走這條。</p>
+      <button class="btn ghost block danger" style="margin-top:8px" onclick="deleteCase()">刪除此案件</button>
+    </div>
+  </section>
+
+  <!-- ============ 範本 ============ -->
+  <section id="v-tpl" class="view">
+    <div class="warn">範本＝每個工項要拍哪幾格、每格建議幾張。改了立刻生效，不用改程式。</div>
+    <div class="card">
+      <h2>工項範本</h2>
+      <div id="tplList"></div>
+      <div class="row" style="margin-top:14px">
+        <select id="tplCat" style="width:38%"></select>
+        <input id="tplNew" class="grow" placeholder="新增工項名稱">
+        <button class="btn sm" onclick="addTpl()">新增</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 編輯單一範本 ============ -->
+  <section id="v-tpledit" class="view">
+    <div class="card">
+      <h2 id="teName">編輯範本</h2>
+      <p class="muted" style="margin-top:0">照拍攝順序排列。「張數」是建議拍幾張（現場可再加），
+        「數值標題／單位」有填的話拍照時會多一個輸入格，數值會寫進檔名。</p>
+      <div id="teItems"></div>
+      <button class="btn ghost sm block" style="margin-top:12px" onclick="teAdd()">＋ 新增項目</button>
+    </div>
+    <div class="card">
+      <button class="btn block" onclick="teSave()">儲存範本</button>
+      <button class="btn ghost block danger" style="margin-top:8px" onclick="teDelete()">刪除整個工項</button>
+    </div>
+  </section>
+
+  <!-- ============ 契約項次挑選 ============ -->
+  <section id="v-pick" class="view">
+    <div class="card">
+      <h2>選契約項次</h2>
+      <input id="pickQ" placeholder="打關鍵字搜尋，例：明挖、CLSM、刨除、300mm" oninput="renderPick()">
+      <p class="muted" id="pickInfo" style="margin:8px 0 0"></p>
+      <div id="pickList" style="max-height:60vh; overflow:auto; margin-top:6px"></div>
+    </div>
+    <div class="card">
+      <button class="btn ghost block" onclick="pickManual()">找不到？自己打一個項目名稱</button>
+    </div>
+  </section>
+
+  <!-- ============ 設定 ============ -->
+  <section id="v-more" class="view">
+    <div class="card">
+      <h2>設定</h2>
+      <button class="btn ghost block" onclick="go('tpl')">🧰　工項範本（每個工項要拍哪幾格）</button>
+      <button class="btn ghost block" style="margin-top:8px" onclick="go('help')">❓　使用說明</button>
+    </div>
+    <div class="card">
+      <h2>備份／還原範本</h2>
+      <p class="muted" style="margin-top:0">範本設定存在這支手機裡。換手機或多人共用時，用這裡搬過去。</p>
+      <div class="row">
+        <button class="btn ghost sm grow" onclick="exportTpl()">匯出範本檔</button>
+        <button class="btn ghost sm grow" onclick="document.getElementById('tplFile').click()">匯入範本檔</button>
+      </div>
+      <input type="file" id="tplFile" accept=".json,application/json" class="hide" onchange="importTpl(this)">
+    </div>
+    <div class="card">
+      <h2>收測數量彙總</h2>
+      <p class="muted" style="margin-top:0">把所有收測案件的第一手數量彙成一張 CSV，
+        供估驗計價、變更設計結算、驗收查核比對。每個案件匯出時，
+        資料夾裡也會附一份可列印的<b>收方測量紀錄表</b>。</p>
+      <button class="btn block" onclick="exportSurveyCsv()">匯出收測數量彙總（CSV）</button>
+      <p class="muted" id="tenderInfo" style="margin:10px 0 0"></p>
+      <div class="row" style="margin-top:8px">
+        <button class="btn ghost sm grow" onclick="document.getElementById('tenderFile').click()">匯入契約項次(JSON)</button>
+        <button class="btn ghost sm grow" onclick="clearTender()">清除已匯入</button>
+      </div>
+      <input type="file" id="tenderFile" accept=".json,application/json" class="hide" onchange="importTender(this)">
+    </div>
+    <div class="card">
+      <h2>拍照即備份</h2>
+      <p class="muted" style="margin-top:0">每拍一張，立刻在手機「下載」資料夾存一份，
+        檔名就是正式命名。<b>就算還沒匯出、App 資料被清掉，照片也還在。</b></p>
+      <label class="row" style="gap:10px; margin:0">
+        <input type="checkbox" id="optBak" style="width:auto" onchange="setBakOpt(this.checked)">
+        <span>開啟拍照即備份（建議開著）</span>
+      </label>
+      <p class="muted" id="bakNote" style="margin:8px 0 0"></p>
+    </div>
+    <div class="card">
+      <h2>路證：自動查路名</h2>
+      <p class="muted" style="margin-top:0">新增路段時用手機 GPS 自動帶入路名（可手改）。
+        <b>只會送出座標去查路名，不會送出任何照片。</b>沒網路時仍會記錄座標，之後可補查。</p>
+      <label class="row" style="gap:10px; margin:0">
+        <input type="checkbox" id="optGeo" style="width:auto" onchange="setGeoOpt(this.checked)">
+        <span>開啟自動查路名（需行動網路）</span>
+      </label>
+    </div>
+    <div class="card">
+      <h2>儲存空間</h2>
+      <p class="muted" id="quota" style="margin:0">查詢中…</p>
+    </div>
+  </section>
+
+  <!-- ============ 說明 ============ -->
+  <section id="v-help" class="view">
+    <div class="card">
+      <h2>怎麼用</h2>
+      <ol style="padding-left:20px; margin:0">
+        <li>現場開 App →「新增拍照案件」→ 選工項、填檢查位置、確認日期。</li>
+        <li>照格子順序拍，<b>每格可以連拍好幾張</b>（預設建議 3 張），日後挑一張用。</li>
+        <li>覺得哪張最好，按「★首選」，它就會排在最前面（檔名 -1）。</li>
+        <li>拍完 →「匯出」→ 手機下載資料夾多一個 ZIP → USB 接電腦拖走。</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h2>檔名長這樣</h2>
+      <p class="muted" style="margin:0 0 6px">資料夾：<code>1150715_試挖_忠明南路福德街口(A3-1A)</code></p>
+      <p class="muted" style="margin:0 0 4px">同一格拍 3 張時：</p>
+      <p class="muted" style="margin:0"><code>…_03-1_試挖長度量測 長3.0M.jpg</code><br>
+        <code>…_03-2_試挖長度量測 長3.0M.jpg</code><br>
+        <code>…_03-3_試挖長度量測 長3.0M.jpg</code></p>
+    </div>
+    <div class="card">
+      <h2>注意</h2>
+      <ul style="padding-left:20px; margin:0" class="muted">
+        <li>照片存在手機瀏覽器裡，<b>當天拍完就匯出</b>，不要放好幾天。</li>
+        <li>匯出後案件仍留著，可以重新匯出；確定電腦收到了再刪除以釋放空間。</li>
+        <li>沒有網路也能拍、能匯出，全程不需連線。</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <button id="tab-施工" class="on" onclick="goCat('施工')"><span class="ic">🚧</span>施工照片</button>
+  <button id="tab-路證" onclick="goCat('路證')"><span class="ic">🪧</span>路證照片</button>
+  <button id="tab-收測" onclick="goCat('收測')"><span class="ic">📐</span>收測照片</button>
+  <button id="tab-more" onclick="go('more')"><span class="ic">⚙️</span>設定</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="cam" accept="image/*" capture="environment" multiple class="hide">
+
+<script>
+/* ==================== 小工具 ==================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let toastTimer;
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+/* 檔名用：冒號轉全形（Windows 合法），其餘非法字元移除 */
+const clean = s => String(s || '').replace(/:/g, '：').replace(/[\\/*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+/* 資料用：只去頭尾空白，不動任何字元（數值、備註、計算式都用這個） */
+const cleanVal = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+function roc(iso){
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-').map(Number);
+  return String(y - 1911) + String(m).padStart(2,'0') + String(d).padStart(2,'0');
+}
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+const now = () => new Date().toLocaleString('zh-TW');
+
+/* ==================== 範本 ==================== */
+const CATS = [
+  { id:'施工', label:'施工照片' },
+  { id:'路證', label:'路證照片' },
+  { id:'收測', label:'收測照片' }
+];
+let curCat = localStorage.getItem('sitephoto.cat') || '施工';
+const catLabel = id => (CATS.find(c => c.id === id) || CATS[0]).label;
+
+const TPL_KEY = 'sitephoto.templates.v1';
+const SHOTS = 3;                                   // 每格建議張數
+const DEFAULT_TPL = [
+  { name:'試挖', items:[
+    { name:'開挖前位置', shots:SHOTS },
+    { name:'路面切割', shots:SHOTS },
+    { name:'試挖長度量測', vlabel:'長', unit:'M', shots:SHOTS },
+    { name:'試挖寬度量測', vlabel:'寬', unit:'M', shots:SHOTS },
+    { name:'試挖深度量測', vlabel:'深', unit:'M', shots:SHOTS },
+    { name:'回填後AC預留厚度', vlabel:'', unit:'cm', shots:SHOTS },
+    { name:'路面修復完成面', shots:SHOTS },
+    { name:'三米直規', vlabel:'', unit:'mm', shots:SHOTS }
+  ]},
+  { name:'200mm,300mm明挖', items:[
+    { name:'開挖前位置', shots:SHOTS },
+    { name:'路面切割', shots:SHOTS },
+    { name:'路面開挖', shots:SHOTS },
+    { name:'擋土設施設置', shots:SHOTS },
+    { name:'開挖寬度', vlabel:'寬', unit:'M', shots:SHOTS },
+    { name:'底砂鋪設', shots:SHOTS },
+    { name:'管線埋設', shots:SHOTS },
+    { name:'陰井埋設', shots:SHOTS },
+    { name:'回填砂', shots:SHOTS },
+    { name:'警示帶鋪設', shots:SHOTS },
+    { name:'CLSM澆置', shots:SHOTS },
+    { name:'AC預留厚度', vlabel:'', unit:'cm', shots:SHOTS },
+    { name:'落沉試驗', shots:SHOTS },
+    { name:'AC鋪設', shots:SHOTS },
+    { name:'臨鋪路面平整度', vlabel:'', unit:'mm', shots:SHOTS }
+  ]},
+  { name:'鋼環工作井', items:[
+    { name:'工作井定位', shots:SHOTS },
+    { name:'垂直度', vlabel:'數值', unit:'', shots:SHOTS },
+    { name:'鋼環焊接', shots:SHOTS },
+    { name:'大底澆置前深度', vlabel:'深', unit:'M', shots:SHOTS },
+    { name:'大底澆置後深度', vlabel:'深', unit:'M', shots:SHOTS },
+    { name:'水中混凝土', shots:SHOTS },
+    { name:'AC預留厚度', vlabel:'', unit:'cm', shots:SHOTS },
+    { name:'工作井完成', shots:SHOTS },
+    { name:'臨鋪路面平整度', vlabel:'', unit:'mm', shots:SHOTS }
+  ]},
+  { name:'推進工程(入坑)', items:[
+    { name:'地質改良', shots:SHOTS },
+    { name:'鏡面框安裝', shots:SHOTS },
+    { name:'退避設施設置', shots:SHOTS },
+    { name:'推進機頭入坑', shots:SHOTS },
+    { name:'入坑高程', vlabel:'EL.', unit:'M', shots:SHOTS },
+    { name:'400mm推進施工', shots:SHOTS }
+  ]},
+  { name:'推進工程(出坑)', items:[
+    { name:'地質改良', shots:SHOTS },
+    { name:'鏡面框安裝', shots:SHOTS },
+    { name:'機頭出坑', shots:SHOTS },
+    { name:'出坑高程檢測', vlabel:'EL.', unit:'M', shots:SHOTS }
+  ]},
+  { name:'人孔收築', items:[
+    { name:'人孔尺寸', vlabel:'尺寸', unit:'', opts:['P1200','P900'], shots:SHOTS },
+    { name:'人孔導水槽設置', shots:SHOTS },
+    { name:'底座直管', shots:SHOTS },
+    { name:'擠壓式填縫帶', shots:SHOTS },
+    { name:'頂部斜管', shots:SHOTS },
+    { name:'不鏽鋼螺絲安裝', shots:SHOTS },
+    { name:'CLSM回填', shots:SHOTS },
+    { name:'AC預留厚度', vlabel:'', unit:'cm', shots:SHOTS },
+    { name:'臨鋪路面平整度', vlabel:'', unit:'mm', shots:SHOTS }
+  ]},
+  { name:'用戶接管', items:[
+    { name:'施工前', shots:SHOTS },
+    { name:'化糞池打除', shots:SHOTS },
+    { name:'抽肥', shots:SHOTS },
+    { name:'化糞池消毒', shots:SHOTS },
+    { name:'用戶接管', shots:SHOTS },
+    { name:'CLSM回填', shots:SHOTS },
+    { name:'完成面', shots:SHOTS }
+  ]},
+  { name:'漏水試驗', items:[
+    { name:'起始點時間測定', vlabel:'時間', unit:'', shots:SHOTS },
+    { name:'起始水位高度', vlabel:'水位', unit:'cm', shots:SHOTS },
+    { name:'第4小時測定', vlabel:'時間', unit:'', shots:SHOTS },
+    { name:'第4小時水位高度', vlabel:'水位', unit:'cm', shots:SHOTS },
+    { name:'第6小時測定', vlabel:'時間', unit:'', shots:SHOTS },
+    { name:'第6小時水位高度', vlabel:'水位', unit:'cm', shots:SHOTS }
+  ]},
+  { name:'巷道連接管', items:[] },
+  { name:'TV檢視', items:[] },
+  { name:'AC刨鋪', items:[] },
+  { name:'告示牌材料', items:[] },
+  { name:'告示牌施工', items:[] },
+  /* --- 路證照片 --- */
+  { name:'路證申請', cat:'路證', items:[] },
+  { name:'路證會勘', cat:'路證', items:[] },
+  { name:'路證完工查驗', cat:'路證', items:[] },
+  /* --- 收測照片 --- */
+  { name:'收方測量', cat:'收測', items:[] },
+  { name:'數量計算查驗', cat:'收測', items:[] }
+];
+let TPL = [];
+function loadTpl(){
+  try { TPL = JSON.parse(localStorage.getItem(TPL_KEY)) || null; } catch(e){ TPL = null; }
+  if (!Array.isArray(TPL) || !TPL.length) { TPL = structuredClone(DEFAULT_TPL); saveTpl(); }
+  /* 合併預設範本：只補「沒有的工項」與「還沒設定項目的工項」，
+     使用者自己改過（已有項目）的一律不動 */
+  DEFAULT_TPL.forEach(d => {
+    const cur = TPL.find(t => t.name === d.name);
+    if (!cur) TPL.push(structuredClone(d));
+    else if (!cur.items.length && d.items.length) cur.items = structuredClone(d.items);
+  });
+  TPL.forEach(t => {
+    if (!t.cat) t.cat = '施工';
+    t.items.forEach(i => { if (!i.shots) i.shots = SHOTS; });
+  });
+  saveTpl();
+}
+function saveTpl(){ localStorage.setItem(TPL_KEY, JSON.stringify(TPL)); }
+
+/* ==================== 契約項次（計價用） ==================== */
+let TENDER = { 案名:'', 項次: [] };
+const TENDER_KEY = 'sitephoto.tender';
+async function loadTender(){
+  /* 1) 手機上自行匯入的優先（這樣契約項次檔可以完全不放上網） */
+  try {
+    const local = localStorage.getItem(TENDER_KEY);
+    if (local) { TENDER = JSON.parse(local); showTenderInfo(); return; }
+  } catch(e){}
+  /* 2) 否則抓同目錄的檔案（若有） */
+  try {
+    const r = await fetch('./tender-items.json', { cache:'no-cache' });
+    if (r.ok) TENDER = await r.json();
+  } catch(e){}
+  showTenderInfo();
+}
+
+function showTenderInfo(){
+  const el = $('#tenderInfo');
+  if (!el) return;
+  const local = !!localStorage.getItem(TENDER_KEY);
+  el.textContent = TENDER.項次.length
+    ? '已載入契約項次 ' + TENDER.項次.length + ' 項' + (local ? '（本機匯入）' : '（隨 App 附帶）')
+      + '　' + (TENDER.案名 || '')
+    : '尚未載入契約項次，收測時可自行輸入項目名稱';
+}
+
+function importTender(inp){
+  const f = inp.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const j = JSON.parse(r.result);
+      const list = Array.isArray(j) ? j : j.項次;
+      if (!Array.isArray(list) || !list.length) throw 0;
+      TENDER = Array.isArray(j) ? { 案名:'', 來源:'本機匯入', 項次:j } : j;
+      localStorage.setItem(TENDER_KEY, JSON.stringify(TENDER));
+      showTenderInfo();
+      toast('已匯入契約項次 ' + list.length + ' 項');
+    } catch(e){ toast('檔案格式不對'); }
+  };
+  r.readAsText(f);
+}
+
+function clearTender(){
+  localStorage.removeItem(TENDER_KEY);
+  toast('已清除，重開 App 後改用隨附檔案');
+  showTenderInfo();
+}
+
+/* ==================== IndexedDB ==================== */
+let db;
+function openDB(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('sitephoto', 2);
+    r.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('cases')) d.createObjectStore('cases', { keyPath:'id' });
+      /* v2：一格可放多張 → key 改為 [caseId, slot, seq] */
+      if (d.objectStoreNames.contains('photos')) d.deleteObjectStore('photos');
+      d.createObjectStore('photos', { keyPath:['caseId','slot','seq'] });
+    };
+    r.onsuccess = e => { db = e.target.result; res(db); };
+    r.onerror = () => rej(r.error);
+  });
+}
+function tx(store, mode){ return db.transaction(store, mode).objectStore(store); }
+function idbPut(store, val){ return new Promise((res, rej) => { const q = tx(store,'readwrite').put(val); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+function idbGet(store, key){ return new Promise((res, rej) => { const q = tx(store,'readonly').get(key); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+function idbAll(store){ return new Promise((res, rej) => { const q = tx(store,'readonly').getAll(); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+function idbDel(store, key){ return new Promise((res, rej) => { const q = tx(store,'readwrite').delete(key); q.onsuccess = () => res(); q.onerror = () => rej(q.error); }); }
+
+/* ==================== 畫面切換 ==================== */
+let cur = null;
+function goCat(cat){
+  curCat = cat;
+  localStorage.setItem('sitephoto.cat', cat);
+  go('cases');
+}
+function go(v){
+  document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+  $('#v-' + v).classList.add('active');
+  CATS.forEach(c => $('#tab-' + c.id).classList.toggle('on', v === 'cases' && curCat === c.id));
+  $('#tab-more').classList.toggle('on', v === 'more');
+  $('#btnBack').classList.toggle('hide', v === 'cases' || v === 'more');
+  window.scrollTo(0, 0);
+  if (v === 'cases') renderCases();
+  if (v === 'tpl') renderTplList();
+  if (v === 'more'){ showQuota(); $('#optGeo').checked = geoOn(); $('#optBak').checked = bakOn(); showBakNote(); }
+}
+
+/* ==================== 案件列表 ==================== */
+const doneSlots = c => c.items.filter(i => i.photos.length).length;
+function rangeText(c){
+  const ds = [...new Set(c.items.flatMap(i => i.photos.map(p => p.day).filter(Boolean)))].sort();
+  if (!ds.length) return c.date;
+  return ds.length === 1 ? ds[0] : ds[0] + '～' + ds[ds.length-1] + '（' + ds.length + '天）';
+}
+const totalShots = c => c.items.reduce((s,i) => s + i.photos.length, 0);
+
+async function renderCases(){
+  $('#hTitle').textContent = catLabel(curCat);
+  $('#btnNew').textContent = '＋ 新增' + catLabel(curCat).replace('照片','') + '拍照案件';
+  const all = (await idbAll('cases')).sort((a,b) => b.id - a.id);
+  const cases = all.filter(c => (c.cat || '施工') === curCat);
+  const doing = cases.filter(c => !c.exportedAt), done = cases.filter(c => c.exportedAt);
+  const locs = [...new Set(all.map(c => c.loc))];
+  $('#locList').innerHTML = locs.map(l => `<option value="${esc(l)}">`).join('');
+  const row = c => {
+    const n = doneSlots(c), tot = c.items.length, pct = tot ? Math.round(n / tot * 100) : 0;
+    return `<div class="case" onclick="openCase(${c.id})">
+      <div class="grow">
+        <div class="t">${esc(c.job)}　${esc(c.loc)}</div>
+        <div class="muted">${esc(rangeText(c))}　${isRoad(c.cat) ? tot + ' 個路段' : n + '/' + tot + ' 格'}　共 ${totalShots(c)} 張</div>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+      </div>
+      <span class="pill ${n>=tot&&tot?'ok':'wait'}">${n>=tot&&tot?'完成':'進行中'}</span>
+    </div>`;
+  };
+  $('#listDoing').innerHTML = doing.length ? doing.map(row).join('')
+    : '<p class="muted">' + catLabel(curCat) + ' 目前沒有進行中的案件。</p>';
+  $('#listDone').innerHTML  = done.length  ? done.map(c => `<div class="case" onclick="openCase(${c.id})">
+      <div class="grow"><div class="t">${esc(c.job)}　${esc(c.loc)}</div>
+      <div class="muted">${esc(c.date)}　${totalShots(c)} 張　已匯出 ${esc(c.exportedAt)}</div></div>
+      <span class="pill grey">已匯出</span></div>`).join('') : '<p class="muted">（尚無）</p>';
+}
+
+const isRoad = cat => cat === '路證';        // 路證：不分工項，只分路證編號＋路段
+const isSurvey = cat => cat === '收測';      // 收測：自由新增量測項目，綁契約項次填數量
+const isFree = cat => isRoad(cat) || isSurvey(cat);
+
+function newCase(){
+  const road = isRoad(curCat), sur = isSurvey(curCat), free = isFree(curCat);
+  $('#nTitle').textContent = road ? '新增路證案件' : (sur ? '新增收測案件' : '新增拍照案件');
+  $('#nJobRow').classList.toggle('hide', free);
+  $('#nLocLabel').textContent = road ? '路證編號（手動輸入）'
+    : (sur ? '收方位置／管段' : '檢查位置（路名門牌＋編號）');
+  $('#nLoc').placeholder = road ? '例：11400123' : (sur ? '例：南平一街(A3-4~A3-5)' : '例：福德街(A3-2)');
+  if (!free) {
+    const usable = TPL.filter(t => t.items.length && (t.cat || '施工') === curCat);
+    if (!usable.length){
+      toast('「' + catLabel(curCat) + '」還沒有設定好的範本，先去設定項目');
+      go('tpl'); return;
+    }
+    $('#nJob').innerHTML = usable.map(t => `<option>${esc(t.name)}</option>`).join('');
+  }
+  $('#nLoc').value = '';
+  $('#nDate').value = todayISO();
+  updateDatePreview();
+  go('new');
+}
+function updateDatePreview(){ $('#nDatePreview').textContent = '民國：' + roc($('#nDate').value); }
+
+async function createCase(){
+  const road = isRoad(curCat), sur = isSurvey(curCat), free = isFree(curCat);
+  const job = road ? '路證' : (sur ? '收測' : $('#nJob').value);
+  const loc = clean($('#nLoc').value), iso = $('#nDate').value;
+  if (!loc){ toast(road ? '請填路證編號' : (sur ? '請填收方位置' : '請填檢查位置')); $('#nLoc').focus(); return; }
+  if (!iso){ toast('請選日期'); return; }
+  const tpl = free ? { items: [] } : TPL.find(t => t.name === job);
+  const c = {
+    id: Date.now(), cat: curCat, job, loc, iso, date: roc(iso), shootISO: iso, createdAt: now(), nextSeq: 1,
+    items: tpl.items.map(i => ({
+      name:i.name, vlabel:i.vlabel||'', unit:i.unit||'', opts:i.opts||null,
+      shots:i.shots||SHOTS, value:'', photos:[]
+    }))
+  };
+  await idbPut('cases', c);
+  openCase(c.id);
+}
+
+async function openCase(id){
+  cur = await idbGet('cases', id);
+  if (!cur){ toast('找不到案件'); return; }
+  if (cur.nextSeq === undefined) cur.nextSeq = 1;
+  renderShoot();
+  go('shoot');
+}
+
+/* ==================== 拍照（一格多張） ==================== */
+/* 這個案件實際拍到的日期範圍（跨天工項用） */
+function dayRange(c){
+  const ds = [...new Set(c.items.flatMap(i => i.photos.map(p => p.day).filter(Boolean)))].sort();
+  return ds.length ? { from: ds[0], to: ds[ds.length-1], days: ds } : null;
+}
+
+async function setShootDate(iso){
+  cur.shootISO = iso;
+  await idbPut('cases', cur);
+  renderShoot();
+}
+
+function renderShoot(){
+  const c = cur;
+  $('#sTitle').textContent = c.job + '　' + c.loc;
+  const rg = dayRange(c);
+  $('#sSub').textContent = (rg ? (rg.from === rg.to ? '民國 ' + rg.from
+      : '民國 ' + rg.from + '～' + rg.to + '（' + rg.days.length + ' 天）') : '民國 ' + c.date + '（尚未拍照）')
+    + (c.exportedAt ? '　已匯出 ' + c.exportedAt : '');
+  const n = doneSlots(c), tot = c.items.length;
+  const roadMode = isFree(c.cat);
+  if (isSurvey(c.cat)) {
+    const filled = c.items.filter(i => i.value !== '' && i.value != null).length;
+    $('#sProg').textContent = filled + '/' + tot + ' 筆有數量';
+    $('#sProg').className = 'pill ' + (tot && filled === tot ? 'ok' : 'grey');
+    $('#sBar').parentElement.classList.add('hide');
+    $('#sCount').textContent = tot
+      ? '共 ' + totalShots(c) + ' 張佐證照片' + (filled < tot ? '　（有 ' + (tot - filled) + ' 筆還沒填數量）' : '')
+      : '還沒有量測項目，按下面「＋ 新增量測項目」開始';
+  } else if (roadMode) {
+    $('#sProg').textContent = tot + ' 個路段';
+    $('#sProg').className = 'pill ' + (tot && n === tot ? 'ok' : 'grey');
+    $('#sBar').parentElement.classList.add('hide');
+    $('#sCount').textContent = tot
+      ? '共 ' + totalShots(c) + ' 張照片' + (n < tot ? '　（有 ' + (tot - n) + ' 段還沒拍）' : '')
+      : '還沒有路段，按下面「＋ 新增路段」開始';
+  } else {
+    $('#sProg').textContent = n + '/' + tot + ' 格';
+    $('#sProg').className = 'pill ' + (n >= tot ? 'ok' : 'wait');
+    $('#sBar').parentElement.classList.remove('hide');
+    $('#sBar').style.width = (tot ? n / tot * 100 : 0) + '%';
+    $('#sCount').textContent = '共 ' + totalShots(c) + ' 張照片';
+  }
+  const road = isRoad(c.cat), sur = isSurvey(c.cat);
+  $('#btnAddItem').textContent = road ? '＋ 新增路段（自動帶入目前路名）'
+    : (sur ? '＋ 新增量測項目（選契約項次）' : '＋ 加一個項目（範本沒有的補充照片）');
+  if (!c.shootISO) c.shootISO = todayISO();
+  $('#sDate').value = c.shootISO;
+  $('#sDateHint').textContent = '接下來拍的照片會記為民國 ' + roc(c.shootISO)
+    + '　（跨多天的工項：每次回來拍前先確認這個日期）';
+
+  $('#slots').innerHTML = c.items.map((it, i) => {
+    const need = it.shots || SHOTS, has = it.photos.length, road = isRoad(c.cat);
+    const shots = it.photos.map((p, k) => `
+      <div class="shot">
+        <div class="im">
+          <img src="${p.thumb}" alt="">
+          <span class="tag ${k === 0 ? 'star' : ''}">${k === 0 ? '★ -1' : '-' + (k+1)}</span>
+        </div>
+        <div class="ops">
+          ${k === 0 ? '' : `<button class="st" onclick="setStar(${i},${k})">★</button>`}
+          <button class="rm" onclick="delShot(${i},${k})">✕</button>
+        </div>
+      </div>`).join('');
+    return `<div class="slot">
+      <div class="head">
+        <span class="no">${String(i+1).padStart(2,'0')}</span>
+        <span class="nm">${esc(it.name)}</span>
+        <span class="cnt ${has ? 'ok' : 'no'}">${road ? has + ' 張' : has + '／建議 ' + need}</span>
+      </div>
+      ${it.code ? `<div class="muted" style="font-size:12px">📄 ${esc(it.code)}　${esc((it.full||'').slice(0,42))}</div>` : ''}
+      ${it.lat ? `<div class="muted" style="font-size:12px">📍 ${it.lat}, ${it.lon}（誤差約 ${it.acc} m）${it.auto ? '　路名自動帶入' : ''}
+        <button class="btn ghost sm" style="margin-left:6px" onclick="renameItem(${i})">改路名</button></div>` : ''}
+      ${sur ? `
+        <div class="valrow">
+          <span>實測／計算式</span>
+          <input class="grow" value="${esc(it.calc || '')}" placeholder="例：25.6*1.2*3.0"
+                 onchange="setCalc(${i}, this.value)">
+        </div>
+        <div class="valrow">
+          <span>數量</span>
+          <input class="grow" inputmode="decimal" value="${esc(it.value)}"
+                 onchange="setVal(${i}, this.value)" placeholder="—">
+          <span>${esc(it.unit)}</span>
+        </div>
+        <div class="valrow">
+          <span>備註</span>
+          <input class="grow" value="${esc(it.note || '')}" placeholder="樁號、範圍、說明…"
+                 onchange="setNote(${i}, this.value)">
+        </div>` : ((it.unit || it.vlabel) ? `
+        <div class="valrow">
+          <span>${esc(it.vlabel || '數值')}</span>
+          <input class="grow" ${it.opts ? `list="opt${i}"` : 'inputmode="decimal"'}
+                 value="${esc(it.value)}" onchange="setVal(${i}, this.value)"
+                 placeholder="${it.opts ? esc(it.opts.join(' / ')) : '—'}">
+          ${it.opts ? `<datalist id="opt${i}">${it.opts.map(o => `<option value="${esc(o)}">`).join('')}</datalist>` : ''}
+          <span>${esc(it.unit)}</span>
+        </div>` : '')}
+      <div class="strip">
+        ${shots}
+        <div class="addshot" onclick="shoot(${i})">
+          <b>＋</b>${has ? '再拍' : '拍照'}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function setVal(i, v){ cur.items[i].value = cleanVal(v); await idbPut('cases', cur); }
+async function setNote(i, v){ cur.items[i].note = cleanVal(v); await idbPut('cases', cur); }
+
+/* 只允許數字與 + - * / ( ) . 空白，避免任意程式碼 */
+function evalCalc(expr){
+  const e = String(expr).replace(/[×xX]/g, '*').replace(/[÷]/g, '/').replace(/\s/g, '');
+  if (!e || !/^[0-9+\-*/().]+$/.test(e)) return null;
+  try {
+    const v = Function('"use strict";return (' + e + ')')();
+    return (typeof v === 'number' && isFinite(v)) ? Math.round(v * 1000) / 1000 : null;
+  } catch(err){ return null; }
+}
+
+async function setCalc(i, v){
+  const it = cur.items[i];
+  it.calc = String(v).trim();
+  const r = evalCalc(it.calc);
+  if (r !== null){ it.value = String(r); toast('算出 ' + r + ' ' + (it.unit || '')); }
+  await idbPut('cases', cur);
+  renderShoot();
+}
+
+async function renameItem(i){
+  const n = prompt('修改名稱：', cur.items[i].name);
+  if (!n) return;
+  cur.items[i].name = clean(n);
+  cur.items[i].auto = false;
+  await idbPut('cases', cur);
+  renderShoot();
+}
+
+function makeThumb(blob){
+  return new Promise(res => {
+    const img = new Image(), url = URL.createObjectURL(blob);
+    img.onload = () => {
+      const s = 220 / Math.max(img.width, img.height);
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(url);
+      res(cv.toDataURL('image/jpeg', .6));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); res(''); };
+    img.src = url;
+  });
+}
+
+/* ---------- 拍照即備份：立刻存一份到下載資料夾 ---------- */
+const BAK_KEY = 'sitephoto.backup';
+const bakOn = () => localStorage.getItem(BAK_KEY) !== '0';       // 預設開啟
+function setBakOpt(v){ localStorage.setItem(BAK_KEY, v ? '1' : '0'); showBakNote(); }
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
+function showBakNote(){
+  const el = $('#bakNote');
+  if (!el) return;
+  el.textContent = !bakOn() ? '目前關閉：照片在匯出前只存在 App 裡，手機出事就沒了。'
+    : (isIOS ? 'iPhone 注意：iOS 不允許網頁自動存檔，這個備份在 iPhone 上不會生效，'
+             + '請改用「匯出並分享」把 ZIP 存到「檔案」或傳 LINE。'
+             : '已開啟：每拍一張就在「下載」資料夾多一個檔。');
+}
+
+let bakQueue = Promise.resolve();
+function backupPhoto(blob, name){
+  if (!bakOn() || isIOS) return;
+  /* 排隊送出，避免瀏覽器一次收到太多下載而丟掉 */
+  bakQueue = bakQueue.then(() => new Promise(res => {
+    try {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => { URL.revokeObjectURL(a.href); res(); }, 700);
+    } catch(e){ res(); }
+  }));
+}
+
+/* 拍照當下就組出正式檔名（數值若之後才填，備份檔名會少那一段，屬正常） */
+function backupNameOf(c, slot, k){
+  const it = c.items[slot];
+  const val = it.value ? ' ' + (it.vlabel || '') + it.value + (it.unit || '') : '';
+  const no = String(slot+1).padStart(2,'0') + '-' + (k+1);
+  const day = roc(c.shootISO || todayISO());
+  return clean(`${day}_${c.job}_${c.loc}_${no}_${it.name}${val}`) + '.jpg';
+}
+
+/* 一次可選多張（相機連拍或從相簿多選） */
+function shoot(i){
+  const inp = $('#cam');
+  inp.value = '';
+  inp.onchange = async () => {
+    const fs = [...(inp.files || [])];
+    if (!fs.length) return;
+    toast('儲存中…');
+    const day = roc(cur.shootISO || todayISO());
+    for (const f of fs){
+      const seq = cur.nextSeq++;
+      await idbPut('photos', { caseId: cur.id, slot: i, seq, blob: f, at: now(), day });
+      cur.items[i].photos.push({ seq, thumb: await makeThumb(f), at: now(), day });
+      backupPhoto(f, backupNameOf(cur, i, cur.items[i].photos.length - 1));
+    }
+    await idbPut('cases', cur);
+    renderShoot();
+    toast('第 ' + (i+1) + ' 格已有 ' + cur.items[i].photos.length + ' 張'
+          + (bakOn() && !isIOS ? '（已備份）' : ''));
+  };
+  inp.click();
+}
+
+/* 設為首選：移到第一張（檔名 -1） */
+async function setStar(i, k){
+  const arr = cur.items[i].photos;
+  arr.unshift(arr.splice(k, 1)[0]);
+  await idbPut('cases', cur);
+  renderShoot();
+  toast('已設為首選');
+}
+
+async function delShot(i, k){
+  const p = cur.items[i].photos[k];
+  if (!confirm('刪除這張照片？')) return;
+  await idbDel('photos', [cur.id, i, p.seq]);
+  cur.items[i].photos.splice(k, 1);
+  await idbPut('cases', cur);
+  renderShoot();
+}
+
+async function addExtra(){
+  if (isRoad(cur.cat)) return addRoadSection();
+  if (isSurvey(cur.cat)) return go('pick'), renderPick();
+  const name = prompt('補充項目的名稱：', '補充照片');
+  if (!name) return;
+  cur.items.push({ name: clean(name), vlabel:'', unit:'', shots:SHOTS, value:'', photos:[] });
+  await idbPut('cases', cur);
+  renderShoot();
+}
+
+/* ---------- 收測：選契約項次 ---------- */
+function renderPick(){
+  const q = ($('#pickQ').value || '').trim();
+  const all = TENDER.項次 || [];
+  const hit = q ? all.filter(i => (i.c + i.n).includes(q)) : all.slice(0, 60);
+  $('#pickInfo').textContent = q
+    ? `符合 ${hit.length} 項（共 ${all.length} 項）`
+    : `契約共 ${all.length} 項，先顯示前 60 筆，請打關鍵字縮小範圍`;
+  $('#pickList').innerHTML = hit.map(i => `
+    <div class="tplitem" style="align-items:flex-start">
+      <div class="grow">
+        <div style="font-weight:700; font-size:14px">${esc(i.n)}</div>
+        <div class="muted" style="font-size:12px">${esc(i.c)}　單位 ${esc(i.u)}</div>
+      </div>
+      <button class="btn ghost sm" onclick="pickItem('${esc(i.c)}')">選這個</button>
+    </div>`).join('') || '<p class="muted">沒有符合的項次，可用下面的手動輸入。</p>';
+}
+
+async function addMeasureItem(o){
+  cur.items.push(Object.assign({
+    vlabel:'數量', value:'', shots:SHOTS, photos:[]
+  }, o));
+  await idbPut('cases', cur);
+  renderShoot(); go('shoot');
+}
+
+async function pickItem(code){
+  const i = (TENDER.項次 || []).find(x => x.c === code);
+  if (!i) return;
+  const short = i.n.split(/[，,（(]/)[0].slice(0, 16);
+  await addMeasureItem({ name: short, full: i.n, code: i.c, unit: i.u });
+  toast('已加入：' + short + '（' + i.u + '）');
+}
+
+async function pickManual(){
+  const n = prompt('項目名稱：', '');
+  if (!n) return;
+  const u = prompt('單位（例：M、M2、M3、處）：', 'M') || '';
+  await addMeasureItem({ name: clean(n), full: clean(n), code:'', unit: clean(u) });
+}
+
+/* ---------- GPS：抓座標並（可選）反查路名 ---------- */
+const GEO_KEY = 'sitephoto.geo';
+const geoOn = () => localStorage.getItem(GEO_KEY) !== '0';
+function setGeoOpt(v){ localStorage.setItem(GEO_KEY, v ? '1' : '0'); }
+
+function getPos(){
+  return new Promise(res => {
+    if (!navigator.geolocation) return res(null);
+    navigator.geolocation.getCurrentPosition(
+      p => res({ lat:+p.coords.latitude.toFixed(6), lon:+p.coords.longitude.toFixed(6),
+                 acc: Math.round(p.coords.accuracy) }),
+      () => res(null),
+      { enableHighAccuracy:true, timeout:12000, maximumAge:30000 }
+    );
+  });
+}
+
+/* 反查路名：只送座標，不送照片。失敗就回 null，改人工輸入 */
+async function roadNameOf(pos){
+  if (!pos || !geoOn() || !navigator.onLine) return null;
+  try {
+    const u = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&accept-language=zh-TW'
+            + '&lat=' + pos.lat + '&lon=' + pos.lon;
+    const ctl = new AbortController();
+    setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch(u, { signal: ctl.signal });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const a = j.address || {};
+    const road = a.road || a.pedestrian || a.residential || a.neighbourhood || '';
+    const no = a.house_number ? a.house_number + '號' : '';
+    return (road + no) || null;
+  } catch(e){ return null; }
+}
+
+async function addRoadSection(){
+  toast('定位中…');
+  const pos = await getPos();
+  let guess = '';
+  if (pos) {
+    const nm = await roadNameOf(pos);
+    guess = nm || '';
+    toast(nm ? '查到：' + nm : (geoOn() ? '查不到路名，請手動輸入' : '已記錄座標'));
+  } else {
+    toast('拿不到定位，請手動輸入路名');
+  }
+  const name = prompt('這個路段的路名（可修改）：', guess);
+  if (!name) return;
+  cur.items.push({
+    name: clean(name), vlabel:'', unit:'', shots:SHOTS, value:'', photos:[],
+    lat: pos ? pos.lat : null, lon: pos ? pos.lon : null, acc: pos ? pos.acc : null,
+    auto: !!guess
+  });
+  await idbPut('cases', cur);
+  renderShoot();
+}
+
+async function deleteCase(){
+  if (!confirm('確定刪除「' + cur.job + ' ' + cur.loc + '」？照片會一併刪掉，無法復原。')) return;
+  for (let i = 0; i < cur.items.length; i++)
+    for (const p of cur.items[i].photos) await idbDel('photos', [cur.id, i, p.seq]);
+  await idbDel('cases', cur.id);
+  cur = null; toast('已刪除'); go('cases');
+}
+
+/* ==================== 匯出 ZIP ==================== */
+const CRC = (() => { const t = new Uint32Array(256);
+  for (let i = 0; i < 256; i++){ let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[i] = c >>> 0; }
+  return t; })();
+function crc32(u8){ let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+
+function makeZip(files){
+  const enc = new TextEncoder(), chunks = [], central = [];
+  let offset = 0;
+  const u16 = n => [n & 255, (n >>> 8) & 255];
+  const u32 = n => [n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255];
+  const d = new Date();
+  const dosTime = ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xFFFF;
+  const dosDate = (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF;
+  for (const f of files){
+    const nameU8 = enc.encode(f.name), crc = crc32(f.data), len = f.data.length;
+    const local = [...u32(0x04034b50), ...u16(20), ...u16(0x800), ...u16(0),
+                   ...u16(dosTime), ...u16(dosDate), ...u32(crc), ...u32(len), ...u32(len),
+                   ...u16(nameU8.length), ...u16(0)];
+    chunks.push(new Uint8Array(local), nameU8, f.data);
+    central.push({ nameU8, crc, len, offset });
+    offset += local.length + nameU8.length + len;
+  }
+  const cenStart = offset;
+  for (const c of central){
+    const h = [...u32(0x02014b50), ...u16(20), ...u16(20), ...u16(0x800), ...u16(0),
+               ...u16(dosTime), ...u16(dosDate), ...u32(c.crc), ...u32(c.len), ...u32(c.len),
+               ...u16(c.nameU8.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+               ...u32(0), ...u32(c.offset)];
+    chunks.push(new Uint8Array(h), c.nameU8);
+    offset += h.length + c.nameU8.length;
+  }
+  chunks.push(new Uint8Array([...u32(0x06054b50), ...u16(0), ...u16(0),
+    ...u16(central.length), ...u16(central.length), ...u32(offset - cenStart), ...u32(cenStart), ...u16(0)]));
+  return new Blob(chunks, { type:'application/zip' });
+}
+
+/* 檔名：日期_工項_位置_序號-子序_項目 數值單位.jpg */
+function fileNameOf(c, i, k){
+  const it = c.items[i], ph = it.photos[k];
+  const val = it.value ? ' ' + (it.vlabel || '') + it.value + (it.unit || '') : '';
+  const no = String(i+1).padStart(2,'0') + '-' + (k+1);
+  const day = (ph && ph.day) || c.date;              // 每張照片用自己的拍攝日
+  return clean(`${day}_${c.job}_${c.loc}_${no}_${it.name}${val}`) + '.jpg';
+}
+
+/* 資料夾名：單日就用單日，跨天用起訖 */
+function folderOf(c){
+  const rg = dayRange(c);
+  const d = !rg ? c.date : (rg.from === rg.to ? rg.from : rg.from + '-' + rg.to);
+  const cat = c.cat || '施工';
+  const job = c.job.includes(cat) ? c.job : cat + '_' + c.job;   // 工項名已含類別就不重複
+  return clean(`${d}_${job}_${c.loc}`);
+}
+
+/* 打包成 ZIP（下載與分享共用） */
+async function buildZip(){
+  const c = cur, missing = c.items.filter(i => !i.photos.length).length;
+  const unit = isRoad(c.cat) ? '個路段' : '格';
+  if (!c.items.length){ toast('還沒有任何' + (isRoad(c.cat) ? '路段' : '項目')); return null; }
+  if (missing && !confirm('還有 ' + missing + ' ' + unit + '沒拍照，仍要匯出嗎？')) return null;
+  toast('打包中，請稍候…');
+  const folder = folderOf(c);
+  const files = [], rows = [['類別','序號','子序','首選','項次','項目','完整項目名稱','實測值/計算式','數值','單位','備註','拍攝日期(民國)','緯度','經度','檔名','拍攝時間']];
+  for (let i = 0; i < c.items.length; i++){
+    const it = c.items[i];
+    for (let k = 0; k < it.photos.length; k++){
+      const rec = await idbGet('photos', [c.id, i, it.photos[k].seq]);
+      if (!rec) continue;
+      const name = fileNameOf(c, i, k);
+      files.push({ name: folder + '/' + name, data: new Uint8Array(await rec.blob.arrayBuffer()) });
+      rows.push([c.cat || '施工', String(i+1), String(k+1), k === 0 ? '★' : '',
+                 it.code || '', it.name, it.full || it.name, it.calc || '',
+                 it.value || '', it.unit || '', it.note || '', it.photos[k].day || c.date,
+                 it.lat || '', it.lon || '', name, rec.at || '']);
+    }
+  }
+  if (!files.length){ toast('還沒有任何照片'); return null; }
+  const csv = '﻿' + rows.map(r => r.map(x => '"' + String(x).replace(/"/g,'""') + '"').join(',')).join('\r\n');
+  files.push({ name: folder + '/_索引.csv', data: new TextEncoder().encode(csv) });
+  if (isSurvey(c.cat)) {
+    files.push({ name: folder + '/收方測量紀錄表.html',
+                 data: new TextEncoder().encode(surveyRecordHtml(c)) });
+  }
+  return { blob: makeZip(files), folder, count: files.length - 1 };
+}
+
+async function markExported(n){
+  cur.exportedAt = now();
+  await idbPut('cases', cur);
+  renderShoot();
+  toast('已匯出 ' + n + ' 張照片');
+}
+
+/* Android／電腦：直接下載到「下載」資料夾 */
+async function exportZip(){
+  const r = await buildZip();
+  if (!r) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(r.blob);
+  a.download = r.folder + '.zip';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+  await markExported(r.count);
+}
+
+/* iPhone：叫出 iOS 分享面板 →「儲存到檔案」／AirDrop／LINE
+   （iOS 加到主畫面後，直接下載常常沒反應，這條路才穩） */
+async function shareZip(){
+  const r = await buildZip();
+  if (!r) return;
+  const file = new File([r.blob], r.folder + '.zip', { type:'application/zip' });
+  try {
+    if (navigator.canShare && navigator.canShare({ files:[file] })) {
+      await navigator.share({ files:[file], title: r.folder });
+      await markExported(r.count);
+    } else {
+      toast('此裝置不支援分享，請改用上面的下載');
+    }
+  } catch(e){
+    if (e && e.name === 'AbortError') return;      // 使用者自己取消
+    toast('分享失敗：' + (e.message || e));
+  }
+}
+
+/* ==================== 收方測量紀錄表（等同收方手冊） ==================== */
+function surveyRecordHtml(c){
+  const E = t => String(t == null ? '' : t)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const rg = dayRange(c);
+  const days = rg ? (rg.from === rg.to ? rg.from : rg.from + '～' + rg.to) : c.date;
+  const rows = c.items.map((it, i) => {
+    const pics = it.photos.map((ph, k) => fileNameOf(c, i, k)).join('<br>');
+    return `<tr>
+      <td class="c">${i+1}</td>
+      <td class="s">${E(it.code)}</td>
+      <td>${E(it.full || it.name)}</td>
+      <td class="s">${E(it.calc)}</td>
+      <td class="c b">${E(it.value)}</td>
+      <td class="c">${E(it.unit)}</td>
+      <td class="s">${E(it.note)}</td>
+      <td class="s pic">${pics || '—'}</td>
+    </tr>`;
+  }).join('');
+  return `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
+<title>收方測量紀錄表 ${E(c.loc)}</title>
+<style>
+  @page{ size:A4 landscape; margin:12mm }
+  body{ font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif; color:#111; font-size:12px; margin:0 }
+  h1{ font-size:19px; text-align:center; margin:0 0 4px }
+  .sub{ text-align:center; font-size:12px; color:#444; margin-bottom:10px }
+  table{ border-collapse:collapse; width:100%; }
+  th,td{ border:1px solid #333; padding:5px 6px; vertical-align:top }
+  th{ background:#eee; font-size:12px; white-space:nowrap }
+  td.c{ text-align:center } td.s{ font-size:11px } td.b{ font-weight:800; font-size:14px }
+  td.pic{ color:#555; font-size:10px; line-height:1.35; word-break:break-all }
+  .meta{ width:100%; border-collapse:collapse; margin-bottom:8px; font-size:12px }
+  .meta td{ border:1px solid #333; padding:5px 8px }
+  .meta .k{ background:#f4f4f4; width:80px; white-space:nowrap; font-weight:700 }
+  .sign{ margin-top:16px; width:100%; border-collapse:collapse; text-align:center }
+  .sign td{ border:1px solid #333; height:56px; vertical-align:top; padding:5px }
+  .sign .k{ background:#f4f4f4; height:auto; font-weight:700 }
+  .note{ margin-top:10px; font-size:11px; color:#555; line-height:1.6 }
+  @media print{ .noprint{ display:none } }
+</style></head><body>
+<h1>收方測量紀錄表</h1>
+<div class="sub">${E(TENDER.案名 || '')}</div>
+<table class="meta">
+  <tr><td class="k">收方位置</td><td>${E(c.loc)}</td>
+      <td class="k">收方日期</td><td>民國 ${E(days)}</td>
+      <td class="k">項目數</td><td>${c.items.length} 項</td>
+      <td class="k">佐證照片</td><td>${totalShots(c)} 張</td></tr>
+</table>
+<table>
+  <thead><tr>
+    <th style="width:32px">序</th><th style="width:120px">契約項次</th><th>工程項目</th>
+    <th style="width:150px">實測值／計算式</th><th style="width:70px">數量</th><th style="width:44px">單位</th>
+    <th style="width:120px">備註</th><th style="width:210px">佐證照片檔名</th>
+  </tr></thead>
+  <tbody>${rows}</tbody>
+</table>
+<table class="sign">
+  <tr><td class="k">測量／填表</td><td class="k">工地主任</td><td class="k">監造單位</td><td class="k">主辦機關</td></tr>
+  <tr><td></td><td></td><td></td><td></td></tr>
+</table>
+<div class="note">
+  1. 本表數量係現場實地收方之第一手紀錄，佐證照片存於同一資料夾，檔名如右欄所列。<br>
+  2. 「實測值／計算式」欄為現場量測原始值與計算過程，數量由該式計算而得，供估驗計價、
+     變更設計數量結算及驗收查核之依據。<br>
+  3. 本表由「工地拍照送審 App」於匯出時自動產生，內容即為現場輸入之原始資料，未經加工。
+</div>
+<div class="noprint" style="margin-top:14px; text-align:center">
+  <button onclick="window.print()" style="padding:8px 18px; font-size:14px">列印 / 存成 PDF</button>
+</div>
+</body></html>`;
+}
+
+/* ==================== 收測數量彙總 ==================== */
+async function exportSurveyCsv(){
+  const cases = (await idbAll('cases')).filter(c => c.cat === '收測').sort((a,b) => a.id - b.id);
+  if (!cases.length){ toast('還沒有收測案件'); return; }
+  const rows = [['收方日期(民國)','收方位置/管段','項次','完整項目名稱','實測值/計算式',
+                 '實際數量','單位','備註','佐證照片數','緯度','經度','案件已匯出']];
+  let n = 0;
+  for (const c of cases){
+    for (const it of c.items){
+      if (it.value === '' || it.value == null) continue;
+      const day = (it.photos[0] && it.photos[0].day) || c.date;
+      rows.push([day, c.loc, it.code || '', it.full || it.name, it.calc || '',
+                 it.value, it.unit || '', it.note || '',
+                 String(it.photos.length), it.lat || '', it.lon || '',
+                 c.exportedAt ? '是' : '否']);
+      n++;
+    }
+  }
+  if (!n){ toast('收測案件裡還沒有填任何數量'); return; }
+  const csv = '\ufeff' + rows.map(r => r.map(x => '"' + String(x).replace(/"/g,'""') + '"').join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv' }));
+  a.download = '收測數量彙總.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('已匯出 ' + n + ' 筆收方數量');
+}
+
+/* ==================== 範本管理 ==================== */
+function renderTplList(){
+  $('#tplList').innerHTML = CATS.map(cat => {
+    const rows = TPL.map((t, i) => ({ t, i })).filter(x => (x.t.cat || '施工') === cat.id);
+    return `<div style="margin-top:14px; font-weight:800; color:var(--green-l)">${cat.label}</div>` +
+      (rows.length ? rows.map(({ t, i }) => `
+        <div class="tplitem">
+          <div class="grow">
+            <div style="font-weight:700">${esc(t.name)}</div>
+            <div class="muted">${t.items.length
+              ? t.items.length + ' 格 · 建議共 ' + t.items.reduce((s,x) => s + (x.shots||SHOTS), 0) + ' 張'
+              : '尚未設定項目'}</div>
+          </div>
+          <button class="btn ghost sm" onclick="teOpen(${i})">${t.items.length ? '編輯' : '設定'}</button>
+        </div>`).join('') : '<p class="muted">（尚無工項）</p>');
+  }).join('');
+  $('#tplCat').innerHTML = CATS.map(c =>
+    `<option value="${c.id}"${c.id === curCat ? ' selected' : ''}>${c.label}</option>`).join('');
+}
+function addTpl(){
+  const n = clean($('#tplNew').value);
+  if (!n) return;
+  if (TPL.some(t => t.name === n)){ toast('已經有同名工項'); return; }
+  TPL.push({ name:n, cat: $('#tplCat').value, items:[] }); saveTpl(); $('#tplNew').value = '';
+  renderTplList(); toast('已新增，請設定項目');
+}
+let teIdx = -1, teBuf = [];
+function teOpen(i){
+  teIdx = i;
+  $('#teName').textContent = '編輯範本：' + TPL[i].name + '（' + catLabel(TPL[i].cat || '施工') + '）';
+  teRender(structuredClone(TPL[i].items));
+  go('tpledit');
+}
+function teRender(items){
+  teBuf = items;
+  $('#teItems').innerHTML = teBuf.map((it, k) => `
+    <div class="tplitem" style="align-items:flex-start">
+      <div class="no" style="padding-top:10px; width:26px; font-weight:800; color:var(--green-l)">${String(k+1).padStart(2,'0')}</div>
+      <div class="grow">
+        <input value="${esc(it.name)}" placeholder="項目名稱" onchange="teSet(${k},'name',this.value)">
+        <div class="valrow">
+          <input style="width:30%" value="${esc(it.vlabel||'')}" placeholder="數值標題(長)" onchange="teSet(${k},'vlabel',this.value)">
+          <input style="width:24%" value="${esc(it.unit||'')}" placeholder="單位(M)" onchange="teSet(${k},'unit',this.value)">
+          <input style="width:20%" type="number" min="1" max="9" value="${it.shots||SHOTS}" title="建議張數" onchange="teSet(${k},'shots',this.value)">
+        </div>
+        <div class="valrow">
+          <button class="btn ghost sm" onclick="teMove(${k},-1)">↑</button>
+          <button class="btn ghost sm" onclick="teMove(${k},1)">↓</button>
+          <button class="btn ghost sm danger" onclick="teDel(${k})">刪除</button>
+          <span style="margin-left:auto">張數 ${it.shots||SHOTS}</span>
+        </div>
+      </div>
+    </div>`).join('') || '<p class="muted">還沒有項目，按下面新增。</p>';
+}
+function teSet(k, f, v){ teBuf[k][f] = f === 'shots' ? Math.max(1, Math.min(9, +v || SHOTS)) : clean(v); }
+function teAdd(){ teBuf.push({ name:'', vlabel:'', unit:'', shots:SHOTS }); teRender(teBuf); }
+function teDel(k){ teBuf.splice(k,1); teRender(teBuf); }
+function teMove(k, d){
+  const j = k + d; if (j < 0 || j >= teBuf.length) return;
+  [teBuf[k], teBuf[j]] = [teBuf[j], teBuf[k]]; teRender(teBuf);
+}
+function teSave(){
+  TPL[teIdx].items = teBuf.filter(i => i.name); saveTpl();
+  toast('已存 ' + TPL[teIdx].items.length + ' 個項目'); go('tpl');
+}
+function teDelete(){
+  if (!confirm('刪除工項「' + TPL[teIdx].name + '」？已建立的案件不受影響。')) return;
+  TPL.splice(teIdx,1); saveTpl(); go('tpl');
+}
+function exportTpl(){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(TPL, null, 2)], { type:'application/json' }));
+  a.download = '工地拍照範本.json';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function importTpl(inp){
+  const f = inp.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const j = JSON.parse(r.result);
+      if (!Array.isArray(j)) throw 0;
+      TPL = j; loadTplFix(); saveTpl(); renderTplList(); toast('範本已匯入');
+    } catch(e){ toast('檔案格式不對'); }
+  };
+  r.readAsText(f);
+}
+function loadTplFix(){ TPL.forEach(t => { if (!t.cat) t.cat = '施工'; (t.items || (t.items = [])).forEach(i => { if (!i.shots) i.shots = SHOTS; }); }); }
+
+async function showQuota(){
+  try {
+    const e = await navigator.storage.estimate();
+    const mb = n => (n / 1048576).toFixed(0) + ' MB';
+    $('#quota').textContent = `已用 ${mb(e.usage)}／可用約 ${mb(e.quota)}`;
+    if (navigator.storage.persist) {
+      const p = await navigator.storage.persisted() || await navigator.storage.persist();
+      $('#quota').textContent += p ? '　（已設為持久儲存）' : '　（未取得持久儲存，請盡快匯出）';
+    }
+  } catch(e){ $('#quota').textContent = '此瀏覽器不支援查詢。'; }
+}
+
+/* ==================== 啟動 ==================== */
+const APP_VER = 'v2.1（拍照即備份）';
+$('#ver').textContent = APP_VER;
+/* 裝置支援「分享檔案」才顯示 iPhone 專用匯出鈕 */
+try {
+  const probe = new File([new Blob(['x'])], 't.zip', { type:'application/zip' });
+  if (navigator.canShare && navigator.canShare({ files:[probe] })) $('#btnShare').classList.remove('hide');
+} catch(e){}
+$('#nDate').addEventListener('change', updateDatePreview);
+loadTpl();
+openDB().then(() => renderCases()).catch(e => toast('無法開啟本機資料庫：' + e));
+loadTender();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+</script>
+</body>
+</html>

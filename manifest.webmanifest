@@ -1,0 +1,14 @@
+{
+  "name": "工地拍照送審",
+  "short_name": "工地拍照",
+  "description": "依工項範本逐格拍照，自動命名分類並匯出",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f3d2e",
+  "theme_color": "#0f3d2e",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
