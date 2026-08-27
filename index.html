@@ -261,6 +261,19 @@
       <input type="file" id="tenderFile" accept=".json,application/json" class="hide" onchange="importTender(this)">
     </div>
     <div class="card">
+      <h2>拍照方式</h2>
+      <p class="muted" style="margin-top:0">如果「拍照即備份」在你的手機上沒作用，改用下面第二種，
+        照片一定會留在手機相簿裡。</p>
+      <label class="row" style="gap:10px; margin:0 0 8px">
+        <input type="radio" name="capmode" value="cam" style="width:auto" onchange="setCapMode('cam')">
+        <span><b>App 內直接拍</b>（快；照片只進 App，靠下面的備份留檔）</span>
+      </label>
+      <label class="row" style="gap:10px; margin:0">
+        <input type="radio" name="capmode" value="pick" style="width:auto" onchange="setCapMode('pick')">
+        <span><b>先用相機拍、再從相簿選</b>（多一步；<b>照片一定留在相簿</b>，可一次選多張）</span>
+      </label>
+    </div>
+    <div class="card">
       <h2>拍照即備份</h2>
       <p class="muted" style="margin-top:0">每拍一張，立刻在手機「下載」資料夾存一份，
         檔名就是正式命名。<b>就算還沒匯出、App 資料被清掉，照片也還在。</b></p>
@@ -269,6 +282,10 @@
         <span>開啟拍照即備份（建議開著）</span>
       </label>
       <p class="muted" id="bakNote" style="margin:8px 0 0"></p>
+      <button class="btn ghost sm block" style="margin-top:10px" onclick="testBackup()">
+        測試備份（存一張測試圖到下載資料夾）</button>
+      <p class="muted" style="margin:8px 0 0">按了之後去手機的「<b>檔案</b>」App →「<b>下載</b>」資料夾找
+        <code>備份測試.jpg</code>。<b>相簿看不到是正常的</b>，Android 相簿只掃 DCIM 資料夾。</p>
     </div>
     <div class="card">
       <h2>路證：自動查路名</h2>
@@ -518,6 +535,24 @@ function importTender(inp){
   r.readAsText(f);
 }
 
+async function testBackup(){
+  if (isIOS){ toast('iPhone 不支援自動存檔，請用「匯出並分享」'); return; }
+  const cv = document.createElement('canvas');
+  cv.width = 600; cv.height = 400;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#0f3d2e'; g.fillRect(0, 0, 600, 400);
+  g.fillStyle = '#f5a524'; g.font = 'bold 34px sans-serif';
+  g.fillText('備份測試 OK', 150, 190);
+  g.font = '20px sans-serif'; g.fillStyle = '#fff';
+  g.fillText(new Date().toLocaleString('zh-TW'), 150, 240);
+  cv.toBlob(b => {
+    try {
+      backupNow(b, '備份測試.jpg');
+      toast('已送出，請到「檔案」App 的「下載」找 備份測試.jpg');
+    } catch(e){ toast('失敗：' + e.message); }
+  }, 'image/jpeg', .9);
+}
+
 function clearTender(){
   localStorage.removeItem(TENDER_KEY);
   toast('已清除，重開 App 後改用隨附檔案');
@@ -562,7 +597,7 @@ function go(v){
   window.scrollTo(0, 0);
   if (v === 'cases') renderCases();
   if (v === 'tpl') renderTplList();
-  if (v === 'more'){ showQuota(); $('#optGeo').checked = geoOn(); $('#optBak').checked = bakOn(); showBakNote(); }
+  if (v === 'more'){ showQuota(); $('#optGeo').checked = geoOn(); $('#optBak').checked = bakOn(); showBakNote(); showCapNote(); }
 }
 
 /* ==================== 案件列表 ==================== */
@@ -823,19 +858,31 @@ function showBakNote(){
              : '已開啟：每拍一張就在「下載」資料夾多一個檔。');
 }
 
-let bakQueue = Promise.resolve();
-function backupPhoto(blob, name){
-  if (!bakOn() || isIOS) return;
-  /* 排隊送出，避免瀏覽器一次收到太多下載而丟掉 */
-  bakQueue = bakQueue.then(() => new Promise(res => {
-    try {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = name;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => { URL.revokeObjectURL(a.href); res(); }, 700);
-    } catch(e){ res(); }
-  }));
+/* 拍照方式：cam＝App 內直接開相機；pick＝從相簿/檔案選（照片先由相機 App 存進相簿） */
+const CAP_KEY = 'sitephoto.capmode';
+const capMode = () => localStorage.getItem(CAP_KEY) || 'cam';
+function setCapMode(m){
+  localStorage.setItem(CAP_KEY, m);
+  toast(m === 'cam' ? '改為 App 內直接拍' : '改為從相簿選取（記得先用手機相機拍好）');
+  showCapNote();
+}
+function showCapNote(){
+  const on = capMode();
+  document.querySelectorAll('input[name=capmode]').forEach(r => { r.checked = (r.value === on); });
+  const b = $('#btnAddItem');   // 不影響
+}
+
+/* 同步觸發下載：必須在使用者手勢當下呼叫，中間不能有 await */
+function backupNow(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 /* 拍照當下就組出正式檔名（數值若之後才填，備份檔名會少那一段，屬正常） */
@@ -851,21 +898,35 @@ function backupNameOf(c, slot, k){
 function shoot(i){
   const inp = $('#cam');
   inp.value = '';
+  /* cam：直接開相機（照片只給網頁）／pick：開相簿選（照片本來就在相簿裡） */
+  if (capMode() === 'pick') inp.removeAttribute('capture');
+  else inp.setAttribute('capture', 'environment');
   inp.onchange = async () => {
     const fs = [...(inp.files || [])];
     if (!fs.length) return;
+
+    /* ★ 先備份，而且必須在這裡（使用者剛拍完的當下）立刻做。
+       Chrome 只允許使用者動作後短時間內觸發下載，等 IndexedDB 與縮圖跑完就過期了，
+       下載會被靜默擋掉。所以任何 await 之前先把檔案送出去。 */
+    let bakCount = 0;
+    if (bakOn() && !isIOS) {
+      const start = cur.items[i].photos.length;
+      fs.forEach((f, k) => {
+        try { backupNow(f, backupNameOf(cur, i, start + k)); bakCount++; } catch(e){}
+      });
+    }
+
     toast('儲存中…');
     const day = roc(cur.shootISO || todayISO());
     for (const f of fs){
       const seq = cur.nextSeq++;
       await idbPut('photos', { caseId: cur.id, slot: i, seq, blob: f, at: now(), day });
       cur.items[i].photos.push({ seq, thumb: await makeThumb(f), at: now(), day });
-      backupPhoto(f, backupNameOf(cur, i, cur.items[i].photos.length - 1));
     }
     await idbPut('cases', cur);
     renderShoot();
     toast('第 ' + (i+1) + ' 格已有 ' + cur.items[i].photos.length + ' 張'
-          + (bakOn() && !isIOS ? '（已備份）' : ''));
+          + (bakCount ? '，已存 ' + bakCount + ' 張到下載資料夾' : ''));
   };
   inp.click();
 }
@@ -1330,7 +1391,7 @@ async function showQuota(){
 }
 
 /* ==================== 啟動 ==================== */
-const APP_VER = 'v2.1（拍照即備份）';
+const APP_VER = 'v2.3';
 $('#ver').textContent = APP_VER;
 /* 裝置支援「分享檔案」才顯示 iPhone 專用匯出鈕 */
 try {

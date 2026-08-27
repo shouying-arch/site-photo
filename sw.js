@@ -2,7 +2,7 @@
    HTML 走「網路優先」：有網路一定拿到最新版（改版即時生效）；沒網路才用快取。
    其他靜態檔走「快取優先」：載入快。
    改版時把 CACHE 版號 +1，舊快取會自動清掉。 */
-const CACHE = 'sitephoto-v6';
+const CACHE = 'sitephoto-v8';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon.svg', './tender-items.json'];
 
 self.addEventListener('install', e => {
